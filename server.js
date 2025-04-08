@@ -26,6 +26,40 @@ async function initializeNotesFile() {
     }
 }
 
+// Serve a simple HTML page at the root URL
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Note Pad</title>
+            <style>
+                body {
+                    background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+                    color: #e0e0e0;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    height: 100vh;
+                    margin: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+                h1 {
+                    font-size: 3rem;
+                    color: #bb86fc;
+                    text-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Note Pad</h1>
+        </body>
+        </html>
+    `);
+});
+
 // Get all notes
 app.get('/api/notes', async (req, res) => {
     try {
