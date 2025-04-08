@@ -90,6 +90,24 @@ app.post('/api/notes', async (req, res) => {
     }
 });
 
+// Delete a note by index
+app.delete('/api/notes/:index', async (req, res) => {
+    try {
+        const index = parseInt(req.params.index, 10);
+        const data = await fs.readFile(notesFile, 'utf8');
+        const notes = JSON.parse(data);
+        if (isNaN(index) || index < 0 || index >= notes.length) {
+            return res.status(400).json({ error: 'Invalid note index' });
+        }
+        notes.splice(index, 1); // Remove note at index
+        await fs.writeFile(notesFile, JSON.stringify(notes, null, 2));
+        res.status(200).json({ message: 'Note deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting note:', error);
+        res.status(500).json({ error: 'Failed to delete note' });
+    }
+});
+
 // Start the server
 async function startServer() {
     await initializeNotesFile();
