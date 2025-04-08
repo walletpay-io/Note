@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Mode Notepad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #bb86fc;
+            text-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
+        }
+        #noteInput {
+            width: 100%;
+            padding: 15px;
+            background-color: #333;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        #noteInput:focus {
+            border-color: #bb86fc;
+            box-shadow: 0 0 8px rgba(187, 134, 252, 0.5);
+            outline: none;
+        }
+        #addNoteBtn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            background-color: #6200ea;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #addNoteBtn:hover {
+            background-color: #3700b3;
+            transform: translateY(-2px);
+        }
+        #notesContainer {
+            margin-top: 20px;
+        }
+        .note {
+            background-color: #2d2d2d;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .note:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .note-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .note-text {
+            word-break: break-word;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+        .copy-btn, .delete-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .copy-btn {
+            background-color: #03dac6;
+            color: #121212;
+        }
+        .copy-btn:hover {
+            background-color: #018786;
+            transform: scale(1.05);
+        }
+        .delete-btn {
+            background-color: #cf6679;
+            color: #fff;
+        }
+        .delete-btn:hover {
+            background-color: #b00020;
+            transform: scale(1.05);
+        }
+        .copy-btn:active, .delete-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <h1>Notepad</h1>
+    <textarea id="noteInput" rows="4" placeholder="Write your note here..."></textarea>
+    <button id="addNoteBtn">Add Note</button>
+    <div id="notesContainer"></div>
+
+    <script>
+        const apiUrl = 'https://note-jc4h.onrender.com/api/notes';
+        let notes = []; // Store notes locally for efficient copy
+
+        // Load existing notes on page load
+        async function loadNotes() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                notes = await response.json();
+                const container = document.getElementById('notesContainer');
+                container.innerHTML = '';
+                notes.forEach((note, index) => {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.className = 'note';
+                    const safeNote = note.replace(/'/g, "\\'");
+                    noteDiv.innerHTML = `
+                        <div class="note-actions">
+                            <button class="copy-btn" onclick="copyNote('${safeNote}')">Copy</button>
+                            <button class="delete-btn" onclick="deleteNote(${index})">Delete</button>
+                        </div>
+                        <div class="note-text">${note}</div>
+                    `;
+                    container.appendChild(noteDiv);
+                });
+            } catch (error) {
+                console.error('Error loading notes:', error);
+                alert('Failed to load notes. Check the server.');
+            }
+        }
+
+        // Add a new note
+        document.getElementById('addNoteBtn').addEventListener('click', async () => {
+            const noteInput = document.getElementById('noteInput');
+            const noteText = noteInput.value.trim();
+            if (noteText) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: noteText })
+                    });
+                    if (!response.ok) throw new Error('Failed to add note');
+                    noteInput.value = '';
+                    loadNotes();
+                } catch (error) {
+                    console.error('Error adding note:', error);
+                    alert('Failed to add note. Check the server.');
+                }
+            }
+        });
+
+        // Copy note to clipboard
+        function copyNote(noteText) {
+            navigator.clipboard.writeText(noteText).then(() => {
+                alert('Note copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy note.');
+            });
+        }
+
+        // Delete a note (requires backend DELETE endpoint)
+        async function deleteNote(index) {
+            try {
+                const response = await fetch(`${apiUrl}/${index}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Failed to delete note');
+                loadNotes();
+            } catch (error) {
+                console.error('Error deleting note:', error);
+                alert('Failed to delete note. Check the server.');
+            }
+        }
+
+        // Initial load
+        loadNotes();
+    </script>
+</body>
+  </html>
